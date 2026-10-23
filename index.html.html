@@ -1,0 +1,1721 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VirtuosoType — Piano-Guided Typing Speed & Coordination Trainer</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-card: #131b2e;
+      --accent-gold: #f59e0b;
+      --accent-indigo: #6366f1;
+      --accent-emerald: #10b981;
+      --accent-rose: #f43f5e;
+    }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #0b0f19;
+      color: #f1f5f9;
+      overflow-x: hidden;
+    }
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+    /* Typing Caret Animation */
+    .char-caret {
+      position: relative;
+    }
+    .char-caret::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: -2px;
+      width: 100%;
+      height: 3px;
+      background: #f59e0b;
+      border-radius: 2px;
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.85);
+      animation: pulseCaret 1s infinite ease-in-out;
+    }
+    @keyframes pulseCaret {
+      0%, 100% { opacity: 1; transform: scaleX(1); }
+      50% { opacity: 0.45; transform: scaleX(0.85); }
+    }
+    /* Piano Key Styling */
+    .piano-white-key {
+      transition: transform 0.08s ease, background-color 0.1s ease, box-shadow 0.12s ease;
+      background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 90%, #cbd5e1 100%);
+    }
+    .piano-white-key.active-left {
+      background: linear-gradient(180deg, #93c5fd 0%, #3b82f6 100%);
+      transform: translateY(3px);
+      box-shadow: 0 0 18px rgba(59, 130, 246, 0.75);
+    }
+    .piano-white-key.active-right {
+      background: linear-gradient(180deg, #fcd34d 0%, #f59e0b 100%);
+      transform: translateY(3px);
+      box-shadow: 0 0 18px rgba(245, 158, 11, 0.75);
+    }
+    .piano-black-key {
+      transition: transform 0.08s ease, background-color 0.1s ease, box-shadow 0.12s ease;
+      background: linear-gradient(180deg, #1e293b 0%, #0f172a 85%, #020617 100%);
+    }
+    .piano-black-key.active-left {
+      background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);
+      transform: translateY(2px);
+      box-shadow: 0 0 14px rgba(59, 130, 246, 0.9);
+    }
+    .piano-black-key.active-right {
+      background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
+      transform: translateY(2px);
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.9);
+    }
+    /* QWERTY Key Styling */
+    .qwerty-key {
+      transition: all 0.09s ease;
+    }
+    .qwerty-key.target-next {
+      transform: translateY(-2px);
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.6);
+      border-color: #f59e0b !important;
+    }
+    .qwerty-key.pressed-correct {
+      transform: scale(0.93);
+      background-color: #10b981 !important;
+      color: #022c22 !important;
+    }
+    .qwerty-key.pressed-wrong {
+      transform: scale(0.93);
+      background-color: #f43f5e !important;
+      color: #fff !important;
+    }
+    /* Floating Note Animation */
+    @keyframes floatUpFade {
+      0% { opacity: 1; transform: translateY(0) scale(0.9); }
+      100% { opacity: 0; transform: translateY(-38px) scale(1.15); }
+    }
+    .floating-note {
+      animation: floatUpFade 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 selection:bg-amber-500/30 selection:text-amber-200">
+
+  <!-- Top Navigation & Audio Bar -->
+  <header class="sticky top-0 z-30 border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+      <!-- Brand Title -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 via-amber-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
+          <svg class="w-6 h-6 text-slate-950" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg sm:text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-amber-200 to-indigo-300 bg-clip-text text-transparent">
+              VirtuosoType
+            </h1>
+            <span class="text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+              Piano &amp; Speed Studio
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 hidden sm:block">
+            Play concert piano melodies with every keystroke while training bilateral hand coordination &amp; writing speed
+          </p>
+        </div>
+      </div>
+
+      <!-- Sound & Instrument Controls -->
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+        <!-- Piano Tone Selector -->
+        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5">
+          <span class="text-xs text-slate-400 font-medium">Tone:</span>
+          <select id="instrumentSelect" class="bg-transparent text-xs font-semibold text-amber-300 focus:outline-none cursor-pointer">
+            <option value="grand" class="bg-slate-900 text-slate-100">Concert Grand Piano</option>
+            <option value="felt" class="bg-slate-900 text-slate-100">Warm Felt Piano</option>
+            <option value="rhodes" class="bg-slate-900 text-slate-100">Electric Vintage Keys</option>
+            <option value="celesta" class="bg-slate-900 text-slate-100">Crystal Music Box</option>
+          </select>
+        </div>
+
+        <!-- Metronome Pulse Toggle -->
+        <button id="metronomeBtn" type="button" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition" title="Toggle rhythmic pulse click for cadence training">
+          <span id="metronomeDot" class="w-2 h-2 rounded-full bg-slate-500"></span>
+          <span>Metronome: <strong id="metronomeStateText">Off</strong></span>
+        </button>
+
+        <!-- Preview Melody Button -->
+        <button id="previewMelodyBtn" type="button" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 transition">
+          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
+          </svg>
+          <span id="previewMelodyText">Preview Melody</span>
+        </button>
+
+        <!-- Mute / Volume Button -->
+        <button id="muteBtn" type="button" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 transition">
+          <svg id="soundOnIcon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+          </svg>
+          <span id="muteBtnText">Sound On</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-5 space-y-5">
+
+    <!-- 1. LIVE WRITING SPEED & COORDINATION TELEMETRY DASHBOARD -->
+    <section aria-label="Writing Speed and Coordination Metrics" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <!-- Primary Writing Speed (Net WPM) -->
+      <div class="col-span-2 sm:col-span-1 lg:col-span-2 bg-gradient-to-br from-slate-900 via-slate-900 to-amber-950/30 border border-amber-500/30 rounded-2xl p-4 flex items-center justify-between shadow-lg">
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs font-semibold uppercase tracking-wider text-amber-400">Writing Speed</span>
+            <span id="tempoRankBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              Ready
+            </span>
+          </div>
+          <div class="mt-1 flex items-baseline gap-2">
+            <span id="wpmValue" class="text-4xl sm:text-5xl font-extrabold tracking-tight text-white font-mono-code">0</span>
+            <span class="text-xs font-semibold text-slate-400">WPM (Net)</span>
+          </div>
+          <div class="mt-1 text-[11px] text-slate-400 flex items-center gap-3">
+            <span>Speed (<strong id="cpmValue" class="text-slate-200">0</strong> CPM)</span>
+            <span>•</span>
+            <span>Best: <strong id="bestWpmValue" class="text-amber-300">0</strong> WPM</span>
+          </div>
+        </div>
+        <!-- Circular Speed Meter SVG -->
+        <div class="relative w-16 h-16 flex items-center justify-center shrink-0">
+          <svg class="w-16 h-16 -rotate-90" viewBox="0 0 64 64">
+            <circle cx="32" cy="32" r="26" stroke="#1e293b" stroke-width="6" fill="none" />
+            <circle id="wpmGaugeArc" cx="32" cy="32" r="26" stroke="#f59e0b" stroke-width="6" stroke-linecap="round" fill="none" stroke-dasharray="163.36" stroke-dashoffset="163.36" class="transition-all duration-300" />
+          </svg>
+          <span id="rawWpmMini" class="absolute text-[11px] font-mono-code font-bold text-amber-300" title="Raw WPM">0r</span>
+        </div>
+      </div>
+
+      <!-- Accuracy -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-slate-400">Accuracy</span>
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        </div>
+        <div class="my-1">
+          <span id="accuracyValue" class="text-2xl sm:text-3xl font-bold text-emerald-400 font-mono-code">100%</span>
+        </div>
+        <div class="text-[11px] text-slate-400">
+          Errors: <strong id="errorCountValue" class="text-rose-400">0</strong> / <span id="totalKeystrokesValue">0</span> keys
+        </div>
+      </div>
+
+      <!-- Hand Coordination Score -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-slate-400">Coordination</span>
+          <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300">L/R Sync</span>
+        </div>
+        <div class="my-1 flex items-baseline gap-1.5">
+          <span id="coordinationScoreValue" class="text-2xl sm:text-3xl font-bold text-indigo-400 font-mono-code">100%</span>
+        </div>
+        <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden flex">
+          <div id="leftHandBar" class="bg-blue-400 h-full transition-all duration-200" style="width: 50%" title="Left Hand Share"></div>
+          <div id="rightHandBar" class="bg-amber-400 h-full transition-all duration-200" style="width: 50%" title="Right Hand Share"></div>
+        </div>
+        <div class="mt-1 flex justify-between text-[10px] text-slate-400">
+          <span>L: <strong id="leftHandPct" class="text-blue-300">50%</strong></span>
+          <span>R: <strong id="rightHandPct" class="text-amber-300">50%</strong></span>
+        </div>
+      </div>
+
+      <!-- Rhythm & Note Streak -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-slate-400">Note Streak</span>
+          <span id="currentNoteBadge" class="text-[11px] font-mono-code font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">♪ —</span>
+        </div>
+        <div class="my-1 flex items-baseline gap-1">
+          <span id="streakValue" class="text-2xl sm:text-3xl font-bold text-amber-300 font-mono-code">0</span>
+          <span class="text-xs text-slate-400">notes</span>
+        </div>
+        <div class="text-[11px] text-slate-400">
+          Max Streak: <strong id="maxStreakValue" class="text-slate-200">0</strong>
+        </div>
+      </div>
+
+      <!-- Session Timer / Mode -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-slate-400">Session Time</span>
+          <div class="flex gap-1">
+            <button type="button" data-duration="30" class="duration-btn text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">30s</button>
+            <button type="button" data-duration="60" class="duration-btn text-[10px] px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 font-bold">60s</button>
+            <button type="button" data-duration="0" class="duration-btn text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">Free</button>
+          </div>
+        </div>
+        <div class="my-1">
+          <span id="timerValue" class="text-2xl sm:text-3xl font-bold text-slate-100 font-mono-code">01:00</span>
+        </div>
+        <div class="text-[11px] text-slate-400">
+          Progress: <strong id="passageProgressValue" class="text-slate-200">0%</strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. COORDINATION MODES & PIANO MELODY SELECTOR -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <!-- Coordination Drills Selector (7 cols) -->
+      <div class="lg:col-span-7 bg-slate-900/75 border border-slate-800/90 rounded-2xl p-4">
+        <div class="flex items-center justify-between mb-2.5">
+          <div>
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
+              1. Choose Coordination &amp; Speed Mode
+            </h2>
+          </div>
+          <span id="activeModeTag" class="text-[11px] text-indigo-300 font-medium">Bilateral Hand Sync</span>
+        </div>
+        <div id="coordinationModeGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <!-- Mode buttons rendered by JS -->
+        </div>
+      </div>
+
+      <!-- Piano Melody Selector (5 cols) -->
+      <div class="lg:col-span-5 bg-slate-900/75 border border-slate-800/90 rounded-2xl p-4">
+        <div class="flex items-center justify-between mb-2.5">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+            2. Choose Piano Repertoire (Plays As You Type)
+          </h2>
+          <span id="melodyProgressText" class="text-[11px] font-mono-code text-amber-300">Note 1 / 32</span>
+        </div>
+        <div id="melodySelectorGrid" class="grid grid-cols-2 gap-2">
+          <!-- Melody buttons rendered by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. INTERACTIVE TYPING STAGE -->
+    <section class="relative bg-slate-900/95 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-2xl">
+      <!-- Stage Top Bar: Current Exercise Info & Quick Actions -->
+      <div class="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-800/80">
+        <div class="flex items-center gap-2.5">
+          <span id="drillTitleBadge" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+            Bilateral Alternation
+          </span>
+          <p id="drillDescriptionText" class="text-xs text-slate-400">
+            Alternates left and right hand syllables to build balanced two-hand speed and rhythm.
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- Next Finger Hint Pill -->
+          <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-xs">
+            <span class="text-slate-400">Target Finger:</span>
+            <span id="fingerHintBadge" class="font-bold text-amber-300">Right Index (J)</span>
+          </div>
+
+          <button id="newPassageBtn" type="button" class="px-3 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 transition">
+            Next Passage
+          </button>
+          <button id="restartBtn" type="button" class="px-3 py-1 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-slate-950 transition">
+            Restart (Tab)
+          </button>
+        </div>
+      </div>
+
+      <!-- Floating Musical Notes Container -->
+      <div id="floatingNotesStage" class="relative h-6 overflow-visible pointer-events-none mb-1 flex items-center justify-between px-2">
+        <div id="melodyLyricHint" class="text-xs font-mono-code text-slate-400 flex items-center gap-2">
+          <span>Upcoming Piano Notes:</span>
+          <div id="upcomingNotesQueue" class="flex items-center gap-1"></div>
+        </div>
+        <div id="liveSpeedFeedback" class="text-xs font-semibold text-amber-300">
+          Start typing below — every keystroke plays the next piano note!
+        </div>
+      </div>
+
+      <!-- Main Typing Passage Box -->
+      <div id="typingArena" tabindex="0" class="relative min-h-[132px] max-h-[190px] overflow-y-auto rounded-xl bg-slate-950/90 border-2 border-slate-800 focus-within:border-amber-500/70 p-4 sm:p-5 cursor-text transition select-none" aria-label="Typing passage area">
+        <div id="passageDisplay" class="font-mono-code text-lg sm:text-xl md:text-2xl leading-relaxed tracking-wide break-words">
+          <!-- Rendered characters -->
+        </div>
+        <!-- Hidden Input for Mobile & Desktop Accessibility -->
+        <input id="hiddenTypingInput" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" class="opacity-0 absolute inset-0 w-full h-full cursor-text" aria-label="Type the passage here" />
+      </div>
+
+      <!-- Bottom Status Bar inside Stage -->
+      <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
+        <div class="flex items-center gap-4">
+          <span class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-sm bg-blue-500/80 inline-block"></span>
+            Left Hand Keys (Bass / Warm Harmonics)
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-sm bg-amber-500/80 inline-block"></span>
+            Right Hand Keys (Treble / Lead Melody)
+          </span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span>Left Speed: <strong id="leftHandWpm" class="text-blue-300 font-mono-code">0</strong> WPM</span>
+          <span>•</span>
+          <span>Right Speed: <strong id="rightHandWpm" class="text-amber-300 font-mono-code">0</strong> WPM</span>
+          <span>•</span>
+          <span>Rhythm Steady: <strong id="rhythmScoreValue" class="text-emerald-300 font-mono-code">100%</strong></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. DUAL VISUALIZER: INTERACTIVE PIANO KEYBOARD + FINGER-COORDINATION QWERTY -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <!-- Interactive 24-Key Concert Piano (5 cols) -->
+      <div class="lg:col-span-5 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">
+              Live Concert Piano Visualizer
+            </h3>
+            <p class="text-[11px] text-slate-400">
+              Click keys directly or type in the passage to play notes
+            </p>
+          </div>
+          <span id="lastPlayedChordText" class="text-xs font-mono-code font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded">
+            C4 • 261.6 Hz
+          </span>
+        </div>
+
+        <!-- Piano Roll Container -->
+        <div class="relative w-full h-36 bg-slate-950 p-2 rounded-xl border border-slate-800 select-none overflow-hidden">
+          <div id="pianoKeyboardContainer" class="relative w-full h-full flex">
+            <!-- White and Black keys dynamically generated -->
+          </div>
+        </div>
+
+        <div class="mt-2.5 flex items-center justify-between text-[11px] text-slate-400">
+          <span>Sustain Pedal: <strong class="text-emerald-400">Active (Warm Reverb)</strong></span>
+          <span>Dynamic Velocity: <strong id="velocityText" class="text-amber-300">Mezzo-Forte</strong></span>
+        </div>
+      </div>
+
+      <!-- Color-Coded Hand & Finger Coordination QWERTY Map (7 cols) -->
+      <div class="lg:col-span-7 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">
+              Finger &amp; Hand Coordination Guide
+            </h3>
+            <p class="text-[11px] text-slate-400">
+              Highlighted key shows the next letter &amp; recommended finger for maximum typing speed
+            </p>
+          </div>
+          <!-- Finger Legend -->
+          <div class="flex flex-wrap items-center gap-1.5 text-[10px]">
+            <span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">Pinky</span>
+            <span class="px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30">Ring</span>
+            <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Middle</span>
+            <span class="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">L-Index</span>
+            <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">R-Index</span>
+          </div>
+        </div>
+
+        <!-- QWERTY Rows -->
+        <div id="qwertyContainer" class="space-y-1.5 select-none py-1">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. WRITING SPEED PROGRESSION LOG & CUSTOM TEXT PRACTICE -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <!-- Speed Progression Log (7 cols) -->
+      <div class="lg:col-span-7 bg-slate-900/90 border border-slate-800 rounded-2xl p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">
+              Writing Speed History &amp; Progression
+            </h3>
+            <p class="text-[11px] text-slate-400">
+              Completed runs and live speed milestones recorded in this session
+            </p>
+          </div>
+          <button id="clearHistoryBtn" type="button" class="text-[11px] text-slate-400 hover:text-rose-400 transition">
+            Reset Log
+          </button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="border-b border-slate-800 text-slate-400">
+                <th class="py-2 pr-2 font-semibold">Run</th>
+                <th class="py-2 px-2 font-semibold">Coordination Mode</th>
+                <th class="py-2 px-2 font-semibold">Piano Piece</th>
+                <th class="py-2 px-2 font-semibold text-right">Writing Speed</th>
+                <th class="py-2 px-2 font-semibold text-right">Accuracy</th>
+                <th class="py-2 pl-2 font-semibold text-right">L/R Sync</th>
+              </tr>
+            </thead>
+            <tbody id="sessionHistoryBody" class="divide-y divide-slate-800/60 font-mono-code">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Custom Passage & Speed Goal Setter (5 cols) -->
+      <div class="lg:col-span-5 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-3">
+        <div>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 mb-1">
+            Custom Writing Practice &amp; Speed Target
+          </h3>
+          <p class="text-[11px] text-slate-400 mb-2.5">
+            Paste your own study notes, essay text, or code snippet to practice typing it to piano music:
+          </p>
+          <textarea id="customTextInput" rows="3" placeholder="Type or paste any custom text here to turn it into a piano typing workout..." class="w-full rounded-xl bg-slate-950 border border-slate-800 focus:border-amber-500/60 focus:outline-none p-2.5 text-xs text-slate-200 placeholder:text-slate-500 resize-none"></textarea>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+          <div class="flex items-center gap-2">
+            <label for="targetWpmInput" class="text-xs text-slate-400">Target Speed:</label>
+            <input id="targetWpmInput" type="number" min="20" max="200" value="65" class="w-16 px-2 py-1 rounded-lg bg-slate-950 border border-slate-800 text-xs font-mono-code font-bold text-amber-300 focus:outline-none" />
+            <span class="text-xs text-slate-400">WPM</span>
+          </div>
+          <button id="applyCustomTextBtn" type="button" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition">
+            Load Custom Text
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- SESSION COMPLETE MODAL -->
+  <div id="summaryModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+    <div class="bg-slate-900 border border-amber-500/40 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300">
+          Performance Complete
+        </span>
+        <button id="closeModalBtn" type="button" class="text-slate-400 hover:text-white text-sm font-bold px-2 py-1">
+          ✕
+        </button>
+      </div>
+      <div>
+        <h2 id="modalHeadline" class="text-xl font-extrabold text-white">Bravo! Musical Passage Finished</h2>
+        <p id="modalSubtext" class="text-xs text-slate-400 mt-0.5">Here is your writing speed and bilateral coordination breakdown:</p>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3">
+          <span class="text-[11px] text-slate-400">Net Writing Speed</span>
+          <div id="modalWpm" class="text-2xl font-extrabold text-amber-400 font-mono-code mt-0.5">0 WPM</div>
+          <span id="modalCpm" class="text-[11px] text-slate-400">0 CPM</span>
+        </div>
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3">
+          <span class="text-[11px] text-slate-400">Precision &amp; Accuracy</span>
+          <div id="modalAccuracy" class="text-2xl font-extrabold text-emerald-400 font-mono-code mt-0.5">100%</div>
+          <span id="modalStreak" class="text-[11px] text-slate-400">Best Streak: 0</span>
+        </div>
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3">
+          <span class="text-[11px] text-slate-400">Hand Coordination</span>
+          <div id="modalCoord" class="text-lg font-bold text-indigo-300 font-mono-code mt-0.5">100% Sync</div>
+          <span id="modalHandSplit" class="text-[11px] text-slate-400">L: 0 WPM • R: 0 WPM</span>
+        </div>
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3">
+          <span class="text-[11px] text-slate-400">Rhythm Consistency</span>
+          <div id="modalRhythm" class="text-lg font-bold text-amber-200 font-mono-code mt-0.5">98%</div>
+          <span id="modalTempoBadge" class="text-[11px] text-slate-400">Tempo: Allegro</span>
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button id="modalNextPassageBtn" type="button" class="w-full py-2.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition">
+          Play Next Passage
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. PIANO SYNTHESIZER & MELODY REPERTOIRE (Web Audio API)
+    // =========================================================================
+    const NOTE_FREQUENCIES = {
+      'C3': 130.81, 'D3': 146.83, 'E3': 164.81, 'F3': 174.61, 'G3': 196.00, 'A3': 220.00, 'G#3': 207.65, 'B3': 246.94,
+      'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13, 'E4': 329.63, 'F4': 349.23, 'F#4': 369.99,
+      'G4': 392.00, 'G#4': 415.30, 'A4': 440.00, 'A#4': 466.16, 'B4': 493.88,
+      'C5': 523.25, 'C#5': 554.37, 'D5': 587.33, 'D#5': 622.25, 'E5': 659.25, 'F5': 698.46, 'F#5': 739.99,
+      'G5': 783.99, 'G#5': 830.61, 'A5': 880.00, 'B5': 987.77
+    };
+
+    const PIANO_KEYS_LAYOUT = [
+      { note: 'C3', type: 'white' }, { note: 'D3', type: 'white' }, { note: 'E3', type: 'white' },
+      { note: 'F3', type: 'white' }, { note: 'G3', type: 'white' }, { note: 'G#3', type: 'black', afterWhiteIndex: 4 },
+      { note: 'A3', type: 'white' }, { note: 'B3', type: 'white' },
+      { note: 'C4', type: 'white' }, { note: 'C#4', type: 'black', afterWhiteIndex: 7 },
+      { note: 'D4', type: 'white' }, { note: 'D#4', type: 'black', afterWhiteIndex: 8 },
+      { note: 'E4', type: 'white' },
+      { note: 'F4', type: 'white' }, { note: 'F#4', type: 'black', afterWhiteIndex: 10 },
+      { note: 'G4', type: 'white' }, { note: 'G#4', type: 'black', afterWhiteIndex: 11 },
+      { note: 'A4', type: 'white' }, { note: 'A#4', type: 'black', afterWhiteIndex: 12 },
+      { note: 'B4', type: 'white' },
+      { note: 'C5', type: 'white' }, { note: 'C#5', type: 'black', afterWhiteIndex: 14 },
+      { note: 'D5', type: 'white' }, { note: 'D#5', type: 'black', afterWhiteIndex: 15 },
+      { note: 'E5', type: 'white' }, { note: 'F5', type: 'white' }, { note: 'F#5', type: 'black', afterWhiteIndex: 17 },
+      { note: 'G5', type: 'white' }, { note: 'A5', type: 'white' }
+    ];
+
+    const PIANO_MELODIES = [
+      {
+        id: 'fur_elise',
+        title: 'Für Elise',
+        composer: 'L. van Beethoven',
+        notes: [
+          'E5','D#5','E5','D#5','E5','B4','D5','C5','A4','C4','E4','A4','B4','E4','G#4','B4','C5',
+          'E4','E5','D#5','E5','D#5','E5','B4','D5','C5','A4','C4','E4','A4','B4','E4','C5','B4','A4',
+          'B4','C5','D5','E5','G4','F5','E5','D5','F4','E5','D5','C5','E4','D5','C5','B4'
+        ]
+      },
+      {
+        id: 'canon_in_d',
+        title: 'Canon in D',
+        composer: 'J. Pachelbel',
+        notes: [
+          'F#5','E5','D5','C#5','B4','A4','B4','C#5','D5','C#5','B4','A4','G4','F#4','G4','E4',
+          'D4','F#4','A4','G4','F#4','D4','F#4','E4','D4','B3','D4','A4','G4','B4','A4','G4',
+          'F#4','D4','E4','C#5','D5','F#5','A5','A4','B4','G4','A4','F#4','D4','D5','D5','C#5'
+        ]
+      },
+      {
+        id: 'clair_de_lune',
+        title: 'Clair de Lune',
+        composer: 'C. Debussy',
+        notes: [
+          'A4','F4','F5','D5','C5','D5','C5','A4','G4','A4','G4','F4','E4','F4','D4','A3',
+          'D4','F4','A4','D5','C5','A4','G4','F4','E4','G4','A4','C5','B4','G4','E4','C4'
+        ]
+      },
+      {
+        id: 'bach_prelude',
+        title: 'Prelude in C Major',
+        composer: 'J.S. Bach',
+        notes: [
+          'C4','E4','G4','C5','E5','G4','C5','E5','C4','E4','G4','C5','E5','G4','C5','E5',
+          'C4','D4','A4','D5','F5','A4','D5','F5','B3','D4','G4','D5','F5','G4','D5','F5',
+          'C4','E4','G4','C5','E5','G4','C5','E5','C4','E4','A4','E5','A5','A4','E5','A5'
+        ]
+      },
+      {
+        id: 'nocturne_op9',
+        title: 'Nocturne Op. 9 No. 2',
+        composer: 'F. Chopin',
+        notes: [
+          'G4','E5','D5','E5','D5','C5','G4','E5','B4','C5','D5','A4','B4','C5','G4','E4',
+          'F4','A4','C5','F5','E5','D5','C5','B4','A4','G4','F4','E4','D4','G4','C5','E5'
+        ]
+      },
+      {
+        id: 'gymnopedie',
+        title: 'Gymnopédie No. 1',
+        composer: 'E. Satie',
+        notes: [
+          'G4','B4','D5','F#5','A4','C#5','E5','F#5','D5','B4','C#5','D5','A4','F#4','G4','B4',
+          'E4','F#4','G4','A4','B4','C#5','D5','E5','F#5','C#5','A4','D5','F#4','A4','D4','G4'
+        ]
+      }
+    ];
+
+    // =========================================================================
+    // 2. SIX COORDINATION & WRITING SPEED MODES
+    // =========================================================================
+    const COORDINATION_MODES = [
+      {
+        id: 'bilateral_sync',
+        name: 'Bilateral Hand Sync',
+        tag: 'Left ↔ Right Alternation',
+        pairedMelody: 'fur_elise',
+        description: 'Alternates strictly between left-hand and right-hand syllables to build rapid, symmetrical two-hand coordination.',
+        passages: [
+          'island visual formal dismantle authentic problems workhorse vibrant signals dynamoiske',
+          'when both hands move in balanced harmony the melody flows effortlessly across every ivory key and your writing speed rises naturally',
+          'altogether the visual rhythm of alternating fingers keeps tension low while lifting your typing cadence to concert velocity',
+          'confident pianists balance left bass chords with right treble phrases just as rapid typists alternate hands without hesitation'
+        ]
+      },
+      {
+        id: 'finger_independence',
+        name: 'Finger Independence',
+        tag: 'Ring & Pinky Agility',
+        pairedMelody: 'bach_prelude',
+        pairedDesc: 'Strengthens outer ring and pinky fingers alongside index anchors.',
+        description: 'Strengthens ring and pinky dexterity so outer keys never slow down your writing speed.',
+        passages: [
+          'quicksilver plaza saxophone puzzle dazzle workflow exquisite zephyr tranquil maximize',
+          'quick precise movements of the outer fingers unlock smooth transitions across punctuation and complex vocabulary without looking down',
+          'practicing delicate trills on the outer keys trains every finger to strike with equal weight clarity and effortless speed',
+          'lazy fingers quickly wake up when guided by steady arpeggios and crisp contrapuntal patterns across the keyboard'
+        ]
+      },
+      {
+        id: 'harmonic_split',
+        name: 'Bass & Treble Split',
+        tag: 'L-Bass + R-Melody',
+        pairedMelody: 'canon_in_d',
+        description: 'Left-hand keys trigger warm resonant bass accompaniment while right-hand keys play the sparkling treble melody.',
+        passages: [
+          'create music as you write every left hand letter adds rich harmonic depth while your right hand carries the soaring lead melody',
+          'listen closely to how the lower register supports the bright upper notes whenever your two hands coordinate in steady time',
+          'great speed comes from relaxation rather than force let each word roll from left to right like a sweeping piano chord',
+          'harmony between mind eye and hand turns everyday writing into a fluid musical performance with zero wasted motion'
+        ]
+      },
+      {
+        id: 'rhythm_cadence',
+        name: 'Rhythm & Cadence Flow',
+        tag: 'Steady Metronome Pace',
+        pairedMelody: 'clair_de_lune',
+        description: 'Eliminates burst-and-pause typing by training even millisecond intervals between every consecutive keystroke.',
+        passages: [
+          'steady tempo beats frantic rushing every single time keep each note evenly spaced so your accuracy and writing speed climb together',
+          'smooth flowing water carves through stone by maintaining an unbroken rhythm from the first word of the sentence to the last',
+          'breathe evenly relax your shoulders and let the gentle pulse of the piano guide your fingers from word to word without stalling',
+          'consistent cadence is the secret behind hundred word per minute writing because steady fingers never stumble over familiar words'
+        ]
+      },
+      {
+        id: 'cross_row_agility',
+        name: 'Cross-Row Agility',
+        tag: 'Top ↔ Home ↔ Bottom',
+        pairedMelody: 'nocturne_op9',
+        description: 'Trains vertical finger travel across top, home, and bottom rows while keeping your wrists anchored.',
+        passages: [
+          'symphony orchestra virtuoso nocturne crescendo polyphony reverberate dynamics',
+          'jumping cleanly between the upper reach and lower row requires light wrists and confident spatial memory across the entire board',
+          'every leap across the keyboard becomes effortless when your index keys stay lightly aware of their home row anchor positions',
+          'expressive musical phrasing combines wide melodic leaps with intimate stepwise motion across all three rows of keys'
+        ]
+      },
+      {
+        id: 'virtuoso_sprint',
+        name: 'Virtuoso Speed Sprint',
+        tag: 'High-WPM Flow Passage',
+        pairedMelody: 'gymnopedie',
+        description: 'High-frequency vocabulary engineered to push your peak writing speed (WPM) and sustained flow state.',
+        passages: [
+          'the fastest way to increase your writing speed is to look three words ahead while your fingers finish playing the current phrase',
+          'when eye and hand work ahead in quiet coordination the letters disappear and only pure thought and melody remain on the screen',
+          'mastery of the keyboard feels just like playing an instrument where intention immediately becomes sound and motion without friction',
+          'build momentum with every accurate line and watch your writing speed reach new personal records with calm musical precision'
+        ]
+      }
+    ];
+
+    // =========================================================================
+    // 3. QWERTY HAND & FINGER COORDINATION MAP
+    // =========================================================================
+    const QWERTY_ROWS = [
+      ['q','w','e','r','t','y','u','i','o','p'],
+      ['a','s','d','f','g','h','j','k','l',';'],
+      ['z','x','c','v','b','n','m',',','.']
+    ];
+
+    const KEY_FINGER_MAP = {
+      'q': { hand: 'L', finger: 'Left Pinky', color: 'rose', bassNote: 'C3' },
+      'a': { hand: 'L', finger: 'Left Pinky', color: 'rose', bassNote: 'D3' },
+      'z': { hand: 'L', finger: 'Left Pinky', color: 'rose', bassNote: 'E3' },
+      'w': { hand: 'L', finger: 'Left Ring', color: 'orange', bassNote: 'F3' },
+      's': { hand: 'L', finger: 'Left Ring', color: 'orange', bassNote: 'G3' },
+      'x': { hand: 'L', finger: 'Left Ring', color: 'orange', bassNote: 'A3' },
+      'e': { hand: 'L', finger: 'Left Middle', color: 'emerald', bassNote: 'B3' },
+      'd': { hand: 'L', finger: 'Left Middle', color: 'emerald', bassNote: 'C4' },
+      'c': { hand: 'L', finger: 'Left Middle', color: 'emerald', bassNote: 'D4' },
+      'r': { hand: 'L', finger: 'Left Index', color: 'blue', bassNote: 'E4' },
+      'f': { hand: 'L', finger: 'Left Index', color: 'blue', bassNote: 'F4' },
+      'v': { hand: 'L', finger: 'Left Index', color: 'blue', bassNote: 'G4' },
+      't': { hand: 'L', finger: 'Left Index', color: 'blue', bassNote: 'A4' },
+      'g': { hand: 'L', finger: 'Left Index', color: 'blue', bassNote: 'G3' },
+      'b': { hand: 'L', finger: 'Left Index', color: 'blue', bassNote: 'C4' },
+      'y': { hand: 'R', finger: 'Right Index', color: 'amber', bassNote: 'C5' },
+      'h': { hand: 'R', finger: 'Right Index', color: 'amber', bassNote: 'D5' },
+      'n': { hand: 'R', finger: 'Right Index', color: 'amber', bassNote: 'E5' },
+      'u': { hand: 'R', finger: 'Right Index', color: 'amber', bassNote: 'F5' },
+      'j': { hand: 'R', finger: 'Right Index', color: 'amber', bassNote: 'G5' },
+      'm': { hand: 'R', finger: 'Right Index', color: 'amber', bassNote: 'A5' },
+      'i': { hand: 'R', finger: 'Right Middle', color: 'emerald', bassNote: 'E5' },
+      'k': { hand: 'R', finger: 'Right Middle', color: 'emerald', bassNote: 'C5' },
+      ',': { hand: 'R', finger: 'Right Middle', color: 'emerald', bassNote: 'D5' },
+      'o': { hand: 'R', finger: 'Right Ring', color: 'orange', bassNote: 'G5' },
+      'l': { hand: 'R', finger: 'Right Ring', color: 'orange', bassNote: 'F5' },
+      '.': { hand: 'R', finger: 'Right Ring', color: 'orange', bassNote: 'E5' },
+      'p': { hand: 'R', finger: 'Right Pinky', color: 'rose', bassNote: 'A5' },
+      ';': { hand: 'R', finger: 'Right Pinky', color: 'rose', bassNote: 'G5' },
+      ' ': { hand: 'Thumb', finger: 'Thumb (Space)', color: 'indigo', bassNote: 'C4' }
+    };
+
+    // =========================================================================
+    // 4. APPLICATION STATE
+    // =========================================================================
+    const state = {
+      audioCtx: null,
+      isMuted: false,
+      instrument: 'grand',
+      metronomeOn: false,
+      metronomeTimer: null,
+      previewTimer: null,
+
+      currentModeId: 'bilateral_sync',
+      currentMelodyId: 'fur_elise',
+      passageIndex: 0,
+      targetText: '',
+      charIndex: 0,
+      melodyStep: 0,
+
+      durationSeconds: 60,
+      timeRemaining: 60,
+      elapsedSeconds: 0,
+      timerInterval: null,
+      isRunning: false,
+      startTimeMs: null,
+
+      totalKeystrokes: 0,
+      correctKeystrokes: 0,
+      errorCount: 0,
+      currentStreak: 0,
+      maxStreak: 0,
+      bestWpm: 0,
+
+      leftHandCount: 0,
+      rightHandCount: 0,
+      leftHandTimeMs: 0,
+      rightHandTimeMs: 0,
+      lastKeyTimeMs: null,
+      interKeyIntervals: [],
+
+      sessionHistory: [
+        { run: 1, mode: 'Bilateral Hand Sync', melody: 'Für Elise', wpm: 48, accuracy: 97, sync: 94 },
+        { run: 2, mode: 'Bass & Treble Split', melody: 'Canon in D', wpm: 56, accuracy: 98, sync: 96 }
+      ]
+    };
+
+    try {
+      const savedBest = localStorage.getItem('virtuoso_best_wpm');
+      if (savedBest) state.bestWpm = parseInt(savedBest, 10) || 0;
+    } catch (e) {}
+
+    // =========================================================================
+    // 5. WEB AUDIO API GRAND PIANO ENGINE
+    // =========================================================================
+    function ensureAudioContext() {
+      if (!state.audioCtx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+          state.audioCtx = new AudioCtx();
+        }
+      }
+      if (state.audioCtx && state.audioCtx.state === 'suspended') {
+        state.audioCtx.resume();
+      }
+    }
+
+    function playPianoNote(noteName, hand = 'R', isError = false) {
+      if (state.isMuted) return;
+      ensureAudioContext();
+      if (!state.audioCtx) return;
+
+      const ctx = state.audioCtx;
+      const now = ctx.currentTime;
+
+      if (isError) {
+        // Gentle muted wooden thud on typo
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(115, now);
+        osc.frequency.exponentialRampToValueAtTime(65, now + 0.11);
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.13);
+        return;
+      }
+
+      const freq = NOTE_FREQUENCIES[noteName] || 440;
+      const masterGain = ctx.createGain();
+      masterGain.connect(ctx.destination);
+
+      // Dynamic velocity based on typing speed
+      let peakGain = 0.24;
+      let releaseTime = 1.35;
+      let oscTypes = ['triangle', 'sine'];
+      let harmonicRatios = [1, 2, 3];
+      let harmonicWeights = [1.0, 0.32, 0.09];
+
+      if (state.instrument === 'felt') {
+        peakGain = 0.26;
+        releaseTime = 1.5;
+        oscTypes = ['sine', 'triangle'];
+        harmonicRatios = [1, 2];
+        harmonicWeights = [1.0, 0.15];
+      } else if (state.instrument === 'rhodes') {
+        peakGain = 0.22;
+        releaseTime = 1.6;
+        oscTypes = ['sine', 'sine'];
+        harmonicRatios = [1, 2, 4];
+        harmonicWeights = [1.0, 0.4, 0.12];
+      } else if (state.instrument === 'celesta') {
+        peakGain = 0.20;
+        releaseTime = 1.1;
+        oscTypes = ['sine', 'triangle'];
+        harmonicRatios = [1, 3, 5];
+        harmonicWeights = [1.0, 0.25, 0.08];
+      }
+
+      // Piano Amplitude Envelope (Crisp hammer attack + natural decay)
+      masterGain.gain.setValueAtTime(0.001, now);
+      masterGain.gain.linearRampToValueAtTime(peakGain, now + 0.012);
+      masterGain.gain.exponentialRampToValueAtTime(peakGain * 0.45, now + 0.18);
+      masterGain.gain.exponentialRampToValueAtTime(0.0008, now + releaseTime);
+
+      harmonicRatios.forEach((ratio, idx) => {
+        const osc = ctx.createOscillator();
+        const partialGain = ctx.createGain();
+        osc.type = oscTypes[idx % oscTypes.length];
+        osc.frequency.setValueAtTime(freq * ratio, now);
+        // Subtle detune on upper partials for grand piano warmth
+        if (idx > 0) osc.detune.setValueAtTime(idx * 2.5, now);
+
+        partialGain.gain.setValueAtTime(harmonicWeights[idx], now);
+        osc.connect(partialGain);
+        partialGain.connect(masterGain);
+
+        osc.start(now);
+        osc.stop(now + releaseTime + 0.05);
+      });
+
+      // In Bass & Treble Split mode, left hand also plays a soft root fifth bass harmonic
+      if (state.currentModeId === 'harmonic_split' && hand === 'L') {
+        const bassOsc = ctx.createOscillator();
+        const bassGain = ctx.createGain();
+        bassOsc.type = 'triangle';
+        bassOsc.frequency.setValueAtTime(freq * 0.5, now);
+        bassGain.gain.setValueAtTime(0.12, now);
+        bassGain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+        bassOsc.connect(bassGain);
+        bassGain.connect(ctx.destination);
+        bassOsc.start(now);
+        bassOsc.stop(now + 1.25);
+      }
+
+      // Update UI badges & piano key highlight
+      const hz = freq.toFixed(1);
+      const chordBadge = document.getElementById('lastPlayedChordText');
+      if (chordBadge) chordBadge.textContent = `${noteName} • ${hz} Hz`;
+      const noteBadge = document.getElementById('currentNoteBadge');
+      if (noteBadge) noteBadge.textContent = `♪ ${noteName}`;
+
+      highlightPianoKey(noteName, hand);
+      spawnFloatingNote(noteName, hand);
+    }
+
+    function playMetronomeClick() {
+      if (state.isMuted || !state.metronomeOn) return;
+      ensureAudioContext();
+      if (!state.audioCtx) return;
+      const ctx = state.audioCtx;
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, now);
+      osc.frequency.exponentialRampToValueAtTime(440, now + 0.03);
+      gain.gain.setValueAtTime(0.07, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.04);
+    }
+
+    // =========================================================================
+    // 6. UI RENDERING: PIANO ROLL, QWERTY MAP, MODES & MELODIES
+    // =========================================================================
+    function renderPianoKeyboard() {
+      const container = document.getElementById('pianoKeyboardContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const whiteKeys = PIANO_KEYS_LAYOUT.filter(k => k.type === 'white');
+      const whiteWidthPct = 100 / whiteKeys.length;
+
+      // Render White Keys
+      whiteKeys.forEach((k) => {
+        const keyEl = document.createElement('button');
+        keyEl.type = 'button';
+        keyEl.dataset.note = k.note;
+        keyEl.className = 'piano-white-key relative h-full flex-1 border border-slate-400/80 rounded-b-md flex flex-col justify-end items-center pb-1.5 text-[9px] font-mono-code font-bold text-slate-700 select-none';
+        keyEl.innerHTML = `<span>${k.note}</span>`;
+        keyEl.addEventListener('click', () => {
+          playPianoNote(k.note, 'R', false);
+        });
+        container.appendChild(keyEl);
+      });
+
+      // Render Black Keys
+      PIANO_KEYS_LAYOUT.filter(k => k.type === 'black').forEach((k) => {
+        const keyEl = document.createElement('button');
+        keyEl.type = 'button';
+        keyEl.dataset.note = k.note;
+        const leftPct = (k.afterWhiteIndex + 1) * whiteWidthPct - (whiteWidthPct * 0.34);
+        keyEl.style.left = `${leftPct}%`;
+        keyEl.style.width = `${whiteWidthPct * 0.68}%`;
+        keyEl.className = 'piano-black-key absolute top-0 h-[60%] z-10 rounded-b-md border border-slate-700 flex items-end justify-center pb-1 text-[8px] font-mono-code text-slate-300';
+        keyEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          playPianoNote(k.note, 'L', false);
+        });
+        container.appendChild(keyEl);
+      });
+    }
+
+    function highlightPianoKey(noteName, hand) {
+      const keyEl = document.querySelector(`[data-note="${noteName}"]`);
+      if (!keyEl) return;
+      const cls = hand === 'L' ? 'active-left' : 'active-right';
+      keyEl.classList.add(cls);
+      setTimeout(() => {
+        keyEl.classList.remove('active-left', 'active-right');
+      }, 240);
+    }
+
+    function spawnFloatingNote(noteName, hand) {
+      const stage = document.getElementById('floatingNotesStage');
+      if (!stage) return;
+      const badge = document.createElement('span');
+      const colorCls = hand === 'L' ? 'text-blue-400 bg-blue-500/15 border-blue-500/30' : 'text-amber-300 bg-amber-500/15 border-amber-500/30';
+      badge.className = `floating-note absolute right-8 top-0 px-2 py-0.5 rounded-full border text-xs font-mono-code font-bold ${colorCls}`;
+      badge.textContent = `♪ ${noteName}`;
+      stage.appendChild(badge);
+      setTimeout(() => badge.remove(), 750);
+    }
+
+    function renderQwertyKeyboard() {
+      const container = document.getElementById('qwertyContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const colorClasses = {
+        rose: 'bg-rose-500/10 border-rose-500/30 text-rose-200',
+        orange: 'bg-orange-500/10 border-orange-500/30 text-orange-200',
+        emerald: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200',
+        blue: 'bg-blue-500/15 border-blue-500/40 text-blue-200',
+        amber: 'bg-amber-500/15 border-amber-500/40 text-amber-200',
+        indigo: 'bg-indigo-500/15 border-indigo-500/40 text-indigo-200'
+      };
+
+      QWERTY_ROWS.forEach((row, rIdx) => {
+        const rowEl = document.createElement('div');
+        rowEl.className = 'flex justify-center gap-1 sm:gap-1.5';
+        if (rIdx === 1) rowEl.classList.add('pl-3');
+        if (rIdx === 2) rowEl.classList.add('pl-6');
+
+        row.forEach((ch) => {
+          const meta = KEY_FINGER_MAP[ch] || { hand: 'R', finger: 'Index', color: 'amber' };
+          const keyEl = document.createElement('div');
+          keyEl.dataset.qwerty = ch;
+          keyEl.className = `qwerty-key w-7 h-8 sm:w-9 sm:h-9 rounded-lg border flex flex-col items-center justify-center font-mono-code text-xs font-bold ${colorClasses[meta.color]}`;
+          keyEl.innerHTML = `
+            <span class="uppercase leading-none">${ch}</span>
+            <span class="text-[8px] opacity-60 font-sans">${meta.hand}</span>
+          `;
+          rowEl.appendChild(keyEl);
+        });
+        container.appendChild(rowEl);
+      });
+
+      // Spacebar Row
+      const spaceRow = document.createElement('div');
+      spaceRow.className = 'flex justify-center pt-0.5';
+      const spaceEl = document.createElement('div');
+      spaceEl.dataset.qwerty = ' ';
+      spaceEl.className = 'qwerty-key w-48 sm:w-64 h-7 rounded-lg border border-indigo-500/30 bg-indigo-500/10 text-indigo-200 flex items-center justify-center text-[10px] font-mono-code font-semibold';
+      spaceEl.textContent = 'SPACE (Thumb • Phrase Breath)';
+      spaceRow.appendChild(spaceEl);
+      container.appendChild(spaceRow);
+    }
+
+    function renderModesAndMelodies() {
+      const modeGrid = document.getElementById('coordinationModeGrid');
+      const melodyGrid = document.getElementById('melodySelectorGrid');
+
+      if (modeGrid) {
+        modeGrid.innerHTML = '';
+        COORDINATION_MODES.forEach((m) => {
+          const isActive = m.id === state.currentModeId;
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `text-left p-2.5 rounded-xl border transition flex flex-col justify-between ${
+            isActive
+              ? 'bg-indigo-600/20 border-indigo-400 text-white shadow-sm'
+              : 'bg-slate-950/60 border-slate-800/90 text-slate-300 hover:border-slate-700 hover:bg-slate-900'
+          }`;
+          btn.innerHTML = `
+            <div class="text-xs font-bold leading-snug ${isActive ? 'text-indigo-200' : 'text-slate-200'}">${m.name}</div>
+            <div class="text-[10px] mt-1 ${isActive ? 'text-amber-300 font-semibold' : 'text-slate-400'}">${m.tag}</div>
+          `;
+          btn.addEventListener('click', () => {
+            state.currentModeId = m.id;
+            state.currentMelodyId = m.pairedMelody;
+            state.passageIndex = 0;
+            loadCurrentPassage();
+            renderModesAndMelodies();
+          });
+          modeGrid.appendChild(btn);
+        });
+      }
+
+      if (melodyGrid) {
+        melodyGrid.innerHTML = '';
+        PIANO_MELODIES.forEach((mel) => {
+          const isActive = mel.id === state.currentMelodyId;
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `text-left p-2.5 rounded-xl border transition flex flex-col justify-between ${
+            isActive
+              ? 'bg-amber-500/20 border-amber-400 text-white shadow-sm'
+              : 'bg-slate-950/60 border-slate-800/90 text-slate-300 hover:border-slate-700 hover:bg-slate-900'
+          }`;
+          btn.innerHTML = `
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-xs font-bold truncate ${isActive ? 'text-amber-200' : 'text-slate-200'}">♪ ${mel.title}</span>
+              <span class="text-[10px] font-mono-code opacity-75">${mel.notes.length}n</span>
+            </div>
+            <div class="text-[10px] text-slate-400 truncate mt-0.5">${mel.composer}</div>
+          `;
+          btn.addEventListener('click', () => {
+            state.currentMelodyId = mel.id;
+            state.melodyStep = 0;
+            updateUpcomingNotesQueue();
+            renderModesAndMelodies();
+            // Play first note as audio feedback
+            playPianoNote(mel.notes[0], 'R', false);
+          });
+          melodyGrid.appendChild(btn);
+        });
+      }
+    }
+
+    // =========================================================================
+    // 7. PASSAGE MANAGEMENT & TYPING ENGINE
+    // =========================================================================
+    function getCurrentMode() {
+      return COORDINATION_MODES.find(m => m.id === state.currentModeId) || COORDINATION_MODES[0];
+    }
+
+    function getCurrentMelody() {
+      return PIANO_MELODIES.find(m => m.id === state.currentMelodyId) || PIANO_MELODIES[0];
+    }
+
+    function loadCurrentPassage(customText = null) {
+      stopSessionTimer();
+      const mode = getCurrentMode();
+      if (customText && customText.trim().length > 0) {
+        state.targetText = customText.trim().replace(/\s+/g, ' ');
+      } else {
+        const passages = mode.passages;
+        state.targetText = passages[state.passageIndex % passages.length];
+      }
+
+      state.charIndex = 0;
+      state.melodyStep = 0;
+      state.isRunning = false;
+      state.startTimeMs = null;
+      state.timeRemaining = state.durationSeconds;
+      state.elapsedSeconds = 0;
+      state.totalKeystrokes = 0;
+      state.correctKeystrokes = 0;
+      state.errorCount = 0;
+      state.currentStreak = 0;
+      state.leftHandCount = 0;
+      state.rightHandCount = 0;
+      state.leftHandTimeMs = 0;
+      state.rightHandTimeMs = 0;
+      state.lastKeyTimeMs = null;
+      state.interKeyIntervals = [];
+
+      // Update Mode headers
+      document.getElementById('activeModeTag').textContent = mode.tag;
+      document.getElementById('drillTitleBadge').textContent = mode.name;
+      document.getElementById('drillDescriptionText').textContent = mode.description;
+
+      const hiddenInput = document.getElementById('hiddenTypingInput');
+      if (hiddenInput) hiddenInput.value = '';
+
+      renderPassageCharacters();
+      updateUpcomingNotesQueue();
+      updateFingerTargetHighlight();
+      updateTelemetryUI();
+    }
+
+    function renderPassageCharacters() {
+      const display = document.getElementById('passageDisplay');
+      if (!display) return;
+      display.innerHTML = '';
+
+      const chars = state.targetText.split('');
+      chars.forEach((ch, idx) => {
+        const span = document.createElement('span');
+        span.dataset.idx = idx;
+        span.textContent = ch;
+        if (idx === 0) {
+          span.className = 'char-caret text-amber-200 bg-amber-500/15 rounded px-0.5';
+        } else {
+          span.className = 'text-slate-500';
+        }
+        display.appendChild(span);
+      });
+    }
+
+    function updateUpcomingNotesQueue() {
+      const mel = getCurrentMelody();
+      const queueEl = document.getElementById('upcomingNotesQueue');
+      const progEl = document.getElementById('melodyProgressText');
+      if (!queueEl) return;
+
+      const total = mel.notes.length;
+      const stepInMel = (state.melodyStep % total) + 1;
+      if (progEl) progEl.textContent = `Note ${stepInMel} / ${total}`;
+
+      queueEl.innerHTML = '';
+      for (let i = 0; i < 6; i++) {
+        const note = mel.notes[(state.melodyStep + i) % total];
+        const pill = document.createElement('span');
+        pill.className = i === 0
+          ? 'px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 font-bold text-[11px]'
+          : 'px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px]';
+        pill.textContent = note;
+        queueEl.appendChild(pill);
+      }
+    }
+
+    function updateFingerTargetHighlight() {
+      document.querySelectorAll('.qwerty-key').forEach(el => {
+        el.classList.remove('target-next');
+      });
+
+      const nextChar = (state.targetText[state.charIndex] || '').toLowerCase();
+      if (!nextChar) return;
+
+      const keyEl = document.querySelector(`.qwerty-key[data-qwerty="${CSS.escape(nextChar)}"]`);
+      if (keyEl) keyEl.classList.add('target-next');
+
+      const meta = KEY_FINGER_MAP[nextChar] || { hand: 'R', finger: 'Right Index' };
+      const hintBadge = document.getElementById('fingerHintBadge');
+      if (hintBadge) {
+        const displayChar = nextChar === ' ' ? 'SPACE' : nextChar.toUpperCase();
+        hintBadge.textContent = `${meta.finger} (${displayChar})`;
+      }
+    }
+
+    function handleCharacterInput(typedChar) {
+      if (state.charIndex >= state.targetText.length) return;
+
+      const nowMs = performance.now();
+      if (!state.isRunning) {
+        startSessionTimer();
+        state.startTimeMs = nowMs;
+      }
+
+      const expectedChar = state.targetText[state.charIndex];
+      const lowerExpected = expectedChar.toLowerCase();
+      const meta = KEY_FINGER_MAP[lowerExpected] || { hand: 'R', finger: 'Right Index' };
+
+      // Record interval for rhythm & per-hand speed
+      if (state.lastKeyTimeMs !== null) {
+        const delta = Math.min(nowMs - state.lastKeyTimeMs, 1800);
+        state.interKeyIntervals.push(delta);
+        if (meta.hand === 'L') {
+          state.leftHandTimeMs += delta;
+        } else if (meta.hand === 'R') {
+          state.rightHandTimeMs += delta;
+        }
+      }
+      state.lastKeyTimeMs = nowMs;
+
+      state.totalKeystrokes++;
+      const spans = document.getElementById('passageDisplay').children;
+      const currentSpan = spans[state.charIndex];
+      const qwertyKeyEl = document.querySelector(`.qwerty-key[data-qwerty="${CSS.escape(typedChar.toLowerCase())}"]`);
+
+      if (typedChar === expectedChar) {
+        // Correct Keystroke -> Play next note in selected piano melody!
+        state.correctKeystrokes++;
+        state.currentStreak++;
+        if (state.currentStreak > state.maxStreak) state.maxStreak = state.currentStreak;
+
+        if (meta.hand === 'L') state.leftHandCount++;
+        else if (meta.hand === 'R') state.rightHandCount++;
+
+        const mel = getCurrentMelody();
+        const noteToPlay = mel.notes[state.melodyStep % mel.notes.length];
+        state.melodyStep++;
+
+        playPianoNote(noteToPlay, meta.hand === 'L' ? 'L' : 'R', false);
+
+        if (currentSpan) {
+          currentSpan.className = meta.hand === 'L'
+            ? 'text-blue-300 transition-colors'
+            : 'text-amber-300 transition-colors';
+        }
+
+        if (qwertyKeyEl) {
+          qwertyKeyEl.classList.add('pressed-correct');
+          setTimeout(() => qwertyKeyEl.classList.remove('pressed-correct'), 150);
+        }
+
+        state.charIndex++;
+        if (state.charIndex < spans.length) {
+          spans[state.charIndex].className = 'char-caret text-white bg-amber-500/20 rounded px-0.5';
+        }
+
+        updateUpcomingNotesQueue();
+        updateFingerTargetHighlight();
+        updateTelemetryUI();
+
+        // Check if passage finished
+        if (state.charIndex >= state.targetText.length) {
+          completeSession();
+        }
+      } else {
+        // Wrong keystroke
+        state.errorCount++;
+        state.currentStreak = 0;
+        playPianoNote('C3', 'L', true);
+
+        if (currentSpan) {
+          currentSpan.className = 'char-caret text-rose-300 bg-rose-500/30 underline decoration-rose-400 rounded px-0.5';
+        }
+        if (qwertyKeyEl) {
+          qwertyKeyEl.classList.add('pressed-wrong');
+          setTimeout(() => qwertyKeyEl.classList.remove('pressed-wrong'), 180);
+        }
+        updateTelemetryUI();
+      }
+    }
+
+    // =========================================================================
+    // 8. METRICS, WRITING SPEED (WPM / CPM) & COORDINATION CALCULATIONS
+    // =========================================================================
+    function getTempoRank(wpm) {
+      if (wpm === 0) return 'Ready';
+      if (wpm < 30) return 'Adagio (Warmup)';
+      if (wpm < 50) return 'Andante (Steady)';
+      if (wpm < 70) return 'Allegro (Fluent)';
+      if (wpm < 90) return 'Vivace (Fast)';
+      return 'Presto (Virtuoso)';
+    }
+
+    function calculateMetrics() {
+      const nowMs = performance.now();
+      const activeMs = state.startTimeMs ? Math.max(nowMs - state.startTimeMs, 1000) : 0;
+      const minutes = activeMs / 60000;
+
+      const netWpm = minutes > 0 ? Math.round((state.correctKeystrokes / 5) / minutes) : 0;
+      const rawWpm = minutes > 0 ? Math.round((state.totalKeystrokes / 5) / minutes) : 0;
+      const cpm = minutes > 0 ? Math.round(state.correctKeystrokes / minutes) : 0;
+      const accuracy = state.totalKeystrokes > 0
+        ? Math.max(0, Math.round((state.correctKeystrokes / state.totalKeystrokes) * 100))
+        : 100;
+
+      // Left vs Right Hand Speed & Balance
+      const totalHands = Math.max(1, state.leftHandCount + state.rightHandCount);
+      const leftPct = state.leftHandCount + state.rightHandCount > 0
+        ? Math.round((state.leftHandCount / totalHands) * 100)
+        : 50;
+      const rightPct = 100 - leftPct;
+
+      const leftWpm = state.leftHandTimeMs > 250
+        ? Math.round((state.leftHandCount / 5) / (state.leftHandTimeMs / 60000))
+        : netWpm;
+      const rightWpm = state.rightHandTimeMs > 250
+        ? Math.round((state.rightHandCount / 5) / (state.rightHandTimeMs / 60000))
+        : netWpm;
+
+      // Rhythm consistency from standard deviation of inter-key intervals
+      let rhythmScore = 100;
+      if (state.interKeyIntervals.length >= 4) {
+        const recent = state.interKeyIntervals.slice(-20);
+        const mean = recent.reduce((a, b) => a + b, 0) / recent.length;
+        const variance = recent.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0) / recent.length;
+        const stdDev = Math.sqrt(variance);
+        const cv = mean > 0 ? stdDev / mean : 0;
+        rhythmScore = Math.max(55, Math.min(100, Math.round(100 - cv * 38)));
+      }
+
+      // Overall Coordination Score (combines accuracy + rhythm + bilateral balance)
+      const handSymmetry = 100 - Math.min(35, Math.abs(50 - leftPct));
+      const coordScore = state.totalKeystrokes > 2
+        ? Math.round((accuracy * 0.45) + (rhythmScore * 0.35) + (handSymmetry * 0.20))
+        : 100;
+
+      if (netWpm > state.bestWpm && state.correctKeystrokes >= 10) {
+        state.bestWpm = netWpm;
+        try {
+          localStorage.setItem('virtuoso_best_wpm', String(state.bestWpm));
+        } catch (e) {}
+      }
+
+      return {
+        netWpm, rawWpm, cpm, accuracy, leftPct, rightPct,
+        leftWpm, rightWpm, rhythmScore, coordScore
+      };
+    }
+
+    function updateTelemetryUI() {
+      const m = calculateMetrics();
+
+      document.getElementById('wpmValue').textContent = m.netWpm;
+      document.getElementById('cpmValue').textContent = m.cpm;
+      document.getElementById('bestWpmValue').textContent = state.bestWpm;
+      document.getElementById('rawWpmMini').textContent = `${m.rawWpm}r`;
+      document.getElementById('tempoRankBadge').textContent = getTempoRank(m.netWpm);
+
+      // Update Circular Gauge (0 to 120 WPM scale)
+      const circumference = 163.36;
+      const ratio = Math.min(1, m.netWpm / 120);
+      const offset = circumference - (ratio * circumference);
+      const arc = document.getElementById('wpmGaugeArc');
+      if (arc) arc.style.strokeDashoffset = String(offset);
+
+      document.getElementById('accuracyValue').textContent = `${m.accuracy}%`;
+      document.getElementById('errorCountValue').textContent = state.errorCount;
+      document.getElementById('totalKeystrokesValue').textContent = state.totalKeystrokes;
+
+      document.getElementById('coordinationScoreValue').textContent = `${m.coordScore}%`;
+      document.getElementById('leftHandBar').style.width = `${m.leftPct}%`;
+      document.getElementById('rightHandBar').style.width = `${m.rightPct}%`;
+      document.getElementById('leftHandPct').textContent = `${m.leftPct}%`;
+      document.getElementById('rightHandPct').textContent = `${m.rightPct}%`;
+
+      document.getElementById('streakValue').textContent = state.currentStreak;
+      document.getElementById('maxStreakValue').textContent = state.maxStreak;
+
+      const progPct = state.targetText.length > 0
+        ? Math.round((state.charIndex / state.targetText.length) * 100)
+        : 0;
+      document.getElementById('passageProgressValue').textContent = `${progPct}%`;
+
+      document.getElementById('leftHandWpm').textContent = m.leftWpm;
+      document.getElementById('rightHandWpm').textContent = m.rightWpm;
+      document.getElementById('rhythmScoreValue').textContent = `${m.rhythmScore}%`;
+
+      // Dynamic velocity label
+      const velEl = document.getElementById('velocityText');
+      if (velEl) {
+        if (m.netWpm < 35) velEl.textContent = 'Piano (Soft)';
+        else if (m.netWpm < 65) velEl.textContent = 'Mezzo-Forte (Balanced)';
+        else velEl.textContent = 'Fortissimo (Brilliante)';
+      }
+
+      // Live target feedback banner
+      const targetWpm = parseInt(document.getElementById('targetWpmInput').value, 10) || 65;
+      const feedbackEl = document.getElementById('liveSpeedFeedback');
+      if (feedbackEl && state.totalKeystrokes > 0) {
+        if (m.netWpm >= targetWpm) {
+          feedbackEl.textContent = `On Target! Writing at ${m.netWpm} WPM (Goal: ${targetWpm} WPM)`;
+          feedbackEl.className = 'text-xs font-semibold text-emerald-400';
+        } else {
+          feedbackEl.textContent = `Current Speed: ${m.netWpm} WPM • ${targetWpm - m.netWpm} WPM to reach your ${targetWpm} WPM goal`;
+          feedbackEl.className = 'text-xs font-semibold text-amber-300';
+        }
+      }
+    }
+
+    // =========================================================================
+    // 9. TIMERS & SESSION COMPLETION
+    // =========================================================================
+    function formatTimer(sec) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function startSessionTimer() {
+      stopSessionTimer();
+      state.isRunning = true;
+      state.timerInterval = setInterval(() => {
+        state.elapsedSeconds++;
+        if (state.durationSeconds > 0) {
+          state.timeRemaining = Math.max(0, state.timeRemaining - 1);
+          document.getElementById('timerValue').textContent = formatTimer(state.timeRemaining);
+          updateTelemetryUI();
+          if (state.timeRemaining <= 0) {
+            completeSession();
+          }
+        } else {
+          document.getElementById('timerValue').textContent = formatTimer(state.elapsedSeconds);
+          updateTelemetryUI();
+        }
+      }, 1000);
+    }
+
+    function stopSessionTimer() {
+      if (state.timerInterval) {
+        clearInterval(state.timerInterval);
+        state.timerInterval = null;
+      }
+      state.isRunning = false;
+    }
+
+    function completeSession() {
+      stopSessionTimer();
+      const m = calculateMetrics();
+      const mode = getCurrentMode();
+      const mel = getCurrentMelody();
+
+      // Play triumphant final arpeggio chord
+      ['C4', 'E4', 'G4', 'C5'].forEach((n, i) => {
+        setTimeout(() => playPianoNote(n, i % 2 === 0 ? 'L' : 'R', false), i * 90);
+      });
+
+      // Log into Session History
+      state.sessionHistory.unshift({
+        run: state.sessionHistory.length + 1,
+        mode: mode.name,
+        melody: mel.title,
+        wpm: m.netWpm,
+        accuracy: m.accuracy,
+        sync: m.coordScore
+      });
+      renderSessionHistory();
+
+      // Populate Modal
+      document.getElementById('modalWpm').textContent = `${m.netWpm} WPM`;
+      document.getElementById('modalCpm').textContent = `${m.cpm} CPM (Raw: ${m.rawWpm} WPM)`;
+      document.getElementById('modalAccuracy').textContent = `${m.accuracy}%`;
+      document.getElementById('modalStreak').textContent = `Best Streak: ${state.maxStreak} notes`;
+      document.getElementById('modalCoord').textContent = `${m.coordScore}% Sync`;
+      document.getElementById('modalHandSplit').textContent = `L: ${m.leftWpm} WPM • R: ${m.rightWpm} WPM`;
+      document.getElementById('modalRhythm').textContent = `${m.rhythmScore}%`;
+      document.getElementById('modalTempoBadge').textContent = `Rank: ${getTempoRank(m.netWpm)}`;
+
+      const modal = document.getElementById('summaryModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function renderSessionHistory() {
+      const tbody = document.getElementById('sessionHistoryBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      if (state.sessionHistory.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-4 text-center text-slate-500 font-sans">Complete a passage to record your writing speed progression.</td></tr>`;
+        return;
+      }
+
+      state.sessionHistory.slice(0, 6).forEach((item) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-800/40 transition';
+        tr.innerHTML = `
+          <td class="py-2 pr-2 text-slate-400">#${item.run}</td>
+          <td class="py-2 px-2 font-sans font-medium text-slate-200">${item.mode}</td>
+          <td class="py-2 px-2 font-sans text-amber-300">♪ ${item.melody}</td>
+          <td class="py-2 px-2 text-right font-bold text-white">${item.wpm} WPM</td>
+          <td class="py-2 px-2 text-right text-emerald-400">${item.accuracy}%</td>
+          <td class="py-2 pl-2 text-right text-indigo-300">${item.sync}%</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // =========================================================================
+    // 10. EVENT LISTENERS & INITIALIZATION
+    // =========================================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      renderPianoKeyboard();
+      renderQwertyKeyboard();
+      renderModesAndMelodies();
+      renderSessionHistory();
+      loadCurrentPassage();
+
+      const arena = document.getElementById('typingArena');
+      const hiddenInput = document.getElementById('hiddenTypingInput');
+
+      arena.addEventListener('click', () => {
+        hiddenInput.focus();
+      });
+
+      // Handle physical keyboard input
+      window.addEventListener('keydown', (e) => {
+        // Ignore shortcuts or when typing inside custom text / target input
+        const activeTag = document.activeElement ? document.activeElement.tagName : '';
+        if (activeTag === 'TEXTAREA' || (activeTag === 'INPUT' && document.activeElement.id !== 'hiddenTypingInput') || activeTag === 'SELECT') {
+          return;
+        }
+
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          loadCurrentPassage();
+          return;
+        }
+
+        if (e.key === 'Escape') {
+          const modal = document.getElementById('summaryModal');
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+          return;
+        }
+
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+        if (e.key.length === 1) {
+          e.preventDefault();
+          handleCharacterInput(e.key);
+        }
+      });
+
+      // Mobile fallback via hidden input
+      hiddenInput.addEventListener('input', (e) => {
+        const val = e.target.value;
+        if (val && val.length > 0) {
+          const lastChar = val[val.length - 1];
+          handleCharacterInput(lastChar);
+          e.target.value = '';
+        }
+      });
+
+      // Instrument Selector
+      document.getElementById('instrumentSelect').addEventListener('change', (e) => {
+        state.instrument = e.target.value;
+        playPianoNote('C5', 'R', false);
+      });
+
+      // Metronome Toggle
+      document.getElementById('metronomeBtn').addEventListener('click', () => {
+        state.metronomeOn = !state.metronomeOn;
+        const dot = document.getElementById('metronomeDot');
+        const txt = document.getElementById('metronomeStateText');
+        if (state.metronomeTimer) {
+          clearInterval(state.metronomeTimer);
+          state.metronomeTimer = null;
+        }
+        if (state.metronomeOn) {
+          dot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-ping';
+          txt.textContent = '96 BPM';
+          playMetronomeClick();
+          state.metronomeTimer = setInterval(playMetronomeClick, 625);
+        } else {
+          dot.className = 'w-2 h-2 rounded-full bg-slate-500';
+          txt.textContent = 'Off';
+        }
+      });
+
+      // Preview Melody Button
+      document.getElementById('previewMelodyBtn').addEventListener('click', () => {
+        const btnText = document.getElementById('previewMelodyText');
+        if (state.previewTimer) {
+          clearInterval(state.previewTimer);
+          state.previewTimer = null;
+          btnText.textContent = 'Preview Melody';
+          return;
+        }
+        const mel = getCurrentMelody();
+        let step = 0;
+        btnText.textContent = 'Stop Preview';
+        state.previewTimer = setInterval(() => {
+          if (step >= 16) {
+            clearInterval(state.previewTimer);
+            state.previewTimer = null;
+            btnText.textContent = 'Preview Melody';
+            return;
+          }
+          playPianoNote(mel.notes[step % mel.notes.length], step % 2 === 0 ? 'R' : 'L', false);
+          step++;
+        }, 230);
+      });
+
+      // Mute Button
+      document.getElementById('muteBtn').addEventListener('click', () => {
+        state.isMuted = !state.isMuted;
+        document.getElementById('muteBtnText').textContent = state.isMuted ? 'Muted' : 'Sound On';
+      });
+
+      // Duration Buttons
+      document.querySelectorAll('.duration-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.duration-btn').forEach(b => {
+            b.className = 'duration-btn text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700';
+          });
+          btn.className = 'duration-btn text-[10px] px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 font-bold';
+          state.durationSeconds = parseInt(btn.dataset.duration, 10);
+          state.timeRemaining = state.durationSeconds;
+          document.getElementById('timerValue').textContent = state.durationSeconds > 0
+            ? formatTimer(state.durationSeconds)
+            : '00:00';
+          loadCurrentPassage();
+        });
+      });
+
+      // Next Passage & Restart Buttons
+      document.getElementById('newPassageBtn').addEventListener('click', () => {
+        state.passageIndex++;
+        loadCurrentPassage();
+      });
+
+      document.getElementById('restartBtn').addEventListener('click', () => {
+        loadCurrentPassage();
+      });
+
+      // Custom Text Button
+      document.getElementById('applyCustomTextBtn').addEventListener('click', () => {
+        const customVal = document.getElementById('customTextInput').value;
+        if (customVal && customVal.trim().length > 0) {
+          loadCurrentPassage(customVal);
+        }
+      });
+
+      // Clear History Button
+      document.getElementById('clearHistoryBtn').addEventListener('click', () => {
+        state.sessionHistory = [];
+        renderSessionHistory();
+      });
+
+      // Modal Controls
+      document.getElementById('closeModalBtn').addEventListener('click', () => {
+        const modal = document.getElementById('summaryModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      });
+
+      document.getElementById('modalNextPassageBtn').addEventListener('click', () => {
+        const modal = document.getElementById('summaryModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        state.passageIndex++;
+        loadCurrentPassage();
+      });
+    });
+  </script>
+</body>
+</html>
